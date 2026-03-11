@@ -1,0 +1,46 @@
+name: Reusable Feishu Notification
+
+on:
+  workflow_call:
+    inputs:
+      status:
+        description: 'Deployment status'
+        required: true
+        type: string
+        default: 'success'
+    secrets:
+      FEISHU_WEBHOOK_URL:
+        description: 'Feishu webhook URL'
+        required: true
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Feishu Notification
+        env:
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          MESSAGE: ${{ github.event.head_commit.message }}
+          STATUS: ${{ inputs.status }}
+        run: |
+          if [ "$STATUS" = "success" ]; then
+            EMOJI="✅"
+            TITLE="部署成功"
+          else
+            EMOJI="❌"
+            TITLE="部署失败"
+          fi
+          
+          curl -X POST "$FEISHU_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -d @- <<EOF
+          {
+            "msg_type": "text",
+            "content": {
+              "text": "$EMOJI $TITLE\n\n仓库: $REPO\n分支: $BRANCH\n触发者: $ACTOR\n提交信息: $MESSAGE\n\n查看详情: https://github.com/$REPO/actions"
+            }
+          }
+          EOF          
