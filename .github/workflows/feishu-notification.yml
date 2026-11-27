@@ -33,14 +33,18 @@ jobs:
             EMOJI="❌"
             TITLE="部署失败"
           fi
-          
-          curl -X POST "$FEISHU_WEBHOOK" \
+
+          TEXT="${EMOJI} ${TITLE}
+
+          仓库: ${REPO}
+          分支: ${BRANCH}
+          触发者: ${ACTOR}
+          提交信息: ${MESSAGE}
+
+          查看详情: https://github.com/${REPO}/actions"
+
+          PAYLOAD=$(jq -n --arg text "$TEXT" '{"msg_type":"text","content":{"text":$text}}')
+
+          curl -fsS -X POST "$FEISHU_WEBHOOK" \
             -H "Content-Type: application/json" \
-            -d @- <<EOF
-          {
-            "msg_type": "text",
-            "content": {
-              "text": "$EMOJI $TITLE\n\n仓库: $REPO\n分支: $BRANCH\n触发者: $ACTOR\n提交信息: $MESSAGE\n\n查看详情: https://github.com/$REPO/actions"
-            }
-          }
-          EOF          
+            -d "$PAYLOAD"
